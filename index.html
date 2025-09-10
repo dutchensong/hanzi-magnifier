@@ -51,7 +51,7 @@
   <div class="toolbar">
     <div class="container inner">
       <input id="text" type="text" inputmode="text" placeholder="输入要放大的字或词语（支持多个字）"/>
-      <label class="control">字号 <input id="size" type="range" min="100" max="800" step="10" value="360"> <span id="sizeVal" class="muted">360px</span></label>
+      <label class="control">字号 <input id="size" type="range" min="100" max="200" step="5" value="150"> <span id="sizeVal" class="muted">150px</span></label>
       <label class="control">字重
         <select id="weight">
           <option value="600">偏粗</option>
@@ -68,6 +68,16 @@
           <option value="square">方格</option>
         </select>
       </label>
+      <label class="control">字体
+        <select id="font">
+          <option value="kaiti" selected>楷体</option>
+          <option value="song">宋体</option>
+          <option value="hei">黑体</option>
+          <option value="li">隶书</option>
+        </select>
+      </label>
+      <label class="control"><input type="checkbox" id="remember" checked> 记住偏好</label>
+      <button id="btnReset" title="清除保存并恢复默认">重置</button>
       <button id="btnFS">全屏</button>
       <button id="btnTheme">深浅</button>
       <button id="btnCopy">复制文字</button>
@@ -108,20 +118,37 @@
   const btnTheme = $('#btnTheme');
   const btnCopy = $('#btnCopy');
   const btnClear = $('#btnClear');
+  const fontSel = $('#font');
+  const remember = $('#remember');
+  const btnReset = $('#btnReset');
   const solo = $('#solo');
 
   const state = {
     text: localStorage.getItem('bch_text') || '作业 日记 汉字',
-    size: +localStorage.getItem('bch_size') || 360,
+    size: +localStorage.getItem('bch_size') || 150,
     weight: localStorage.getItem('bch_weight') || '700',
     outline: localStorage.getItem('bch_outline') === '1' ? true : false,
     grid: localStorage.getItem('bch_grid') || 'tian',
-    theme: localStorage.getItem('bch_theme') || 'light'
+    theme: localStorage.getItem('bch_theme') || 'light',
+    font: localStorage.getItem('bch_font') || 'kaiti',
+    remember: (localStorage.getItem('bch_remember') !== '0')
   };
 
+  state.size = (state.size<100 || state.size>200) ? 150 : state.size;
   function applyTheme(){
     document.documentElement.setAttribute('data-theme', state.theme==='dark'?'dark':'light');
   }
+
+  function fontStack(k){
+    switch(k){
+      case 'kaiti': return '"Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai","AR PL UKai CN","AR PL UKai TW","TW-Kai",serif';
+      case 'song': return '"Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC","PMingLiU","MingLiU",serif';
+      case 'hei': return '"PingFang SC","Microsoft YaHei","Heiti SC","Noto Sans CJK SC","Source Han Sans SC","Hiragino Sans GB","Arial",sans-serif';
+      case 'li': return '"LiSu","STLiti","KaiTi","Kaiti",serif';
+      default: return '"Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai",serif';
+    }
+  }
+  const DEFAULTS = { size:150, weight:'700', outline:false, grid:'tian', theme:'light', font:'kaiti' };
 
   function render(){
     sizeVal.textContent = state.size + 'px';
@@ -140,6 +167,7 @@
       chEl.style.fontSize = state.size + 'px';
       chEl.style.fontWeight = state.weight;
       chEl.classList.toggle('outline', !!state.outline);
+      chEl.style.fontFamily = fontStack(state.font);
 
       idx.textContent = i+1;
       pin.textContent = ch.charCodeAt(0).toString(16).toUpperCase();
@@ -182,6 +210,7 @@
     const base = Math.min(window.innerWidth, window.innerHeight) * 0.75;
     c.style.fontSize = Math.max(base, state.size) + 'px';
     c.style.fontWeight = state.weight;
+    c.style.fontFamily = fontStack(state.font);
     c.classList.toggle('outline', !!state.outline);
 
     const back = document.createElement('button');
@@ -197,15 +226,15 @@
 
   // sync UI
   text.value = state.text; size.value = state.size; sizeVal.textContent = state.size+'px';
-  weight.value = state.weight; outline.checked = state.outline; gridtype.value = state.grid; applyTheme();
+  weight.value = state.weight; outline.checked = state.outline; gridtype.value = state.grid; if(fontSel) fontSel.value = state.font; if(remember) remember.checked = state.remember; applyTheme();
   render();
 
   // events
-  text.addEventListener('input',()=>{state.text=text.value;localStorage.setItem('bch_text',state.text); render();});
-  size.addEventListener('input',()=>{state.size=+size.value;localStorage.setItem('bch_size',state.size); render();});
-  weight.addEventListener('change',()=>{state.weight=weight.value;localStorage.setItem('bch_weight',state.weight); render();});
-  outline.addEventListener('change',()=>{state.outline=outline.checked;localStorage.setItem('bch_outline',state.outline?'1':'0'); render();});
-  gridtype.addEventListener('change',()=>{state.grid=gridtype.value;localStorage.setItem('bch_grid',state.grid); render();});
+  text.addEventListener('input',()=>{state.text=text.value;if(state.remember) localStorage.setItem('bch_text',state.text); render();});
+  size.addEventListener('input',()=>{state.size=+size.value;if(state.remember) localStorage.setItem('bch_size',state.size); render();});
+  weight.addEventListener('change',()=>{state.weight=weight.value;if(state.remember) localStorage.setItem('bch_weight',state.weight); render();});
+  outline.addEventListener('change',()=>{state.outline=outline.checked;if(state.remember) localStorage.setItem('bch_outline',state.outline?'1':'0'); render();});
+  gridtype.addEventListener('change',()=>{state.grid=gridtype.value;if(state.remember) localStorage.setItem('bch_grid',state.grid); render();});
 
   btnFS.addEventListener('click',()=>{
     if(document.fullscreenElement){document.exitFullscreen();}
@@ -213,12 +242,24 @@
   });
   btnTheme.addEventListener('click',()=>{
     state.theme = state.theme==='dark'?'light':'dark';
-    localStorage.setItem('bch_theme',state.theme); applyTheme();
+    if(state.remember) localStorage.setItem('bch_theme',state.theme); applyTheme();
   });
   btnCopy.addEventListener('click',async()=>{
     try{await navigator.clipboard.writeText(state.text); btnCopy.textContent='已复制'; setTimeout(()=>btnCopy.textContent='复制文字',1000);}catch(e){alert('复制失败：'+e.message)}
   });
   btnClear.addEventListener('click',()=>{text.value=''; text.dispatchEvent(new Event('input'));});
+
+  // 字体切换
+  if(fontSel){ fontSel.addEventListener('change',()=>{ state.font = fontSel.value; if(state.remember) if(state.remember) localStorage.setItem('bch_font', state.font); render(); }); }
+  // 记住偏好开关
+  if(remember){ remember.addEventListener('change',()=>{ state.remember = remember.checked; localStorage['setItem']('bch_remember', state.remember ? '1':'0'); }); }
+  // 重置为默认
+  if(btnReset){ btnReset.addEventListener('click',()=>{
+      ['bch_text','bch_size','bch_weight','bch_outline','bch_grid','bch_theme','bch_font'].forEach(k=>localStorage.removeItem(k));
+      state.size = DEFAULTS.size; state.weight = DEFAULTS.weight; state.outline = DEFAULTS.outline; state.grid = DEFAULTS.grid; state.theme = DEFAULTS.theme; state.font = DEFAULTS.font;
+      size.value = String(DEFAULTS.size); weight.value = DEFAULTS.weight; outline.checked = DEFAULTS.outline; gridtype.value = DEFAULTS.grid; if(fontSel) fontSel.value = DEFAULTS.font; text.value='';
+      applyTheme(); render();
+  }); }
 
   // iPad优化：禁止双击缩放带来的抖动
   let lastTouch=0; window.addEventListener('touchend',e=>{const now=Date.now(); if(now-lastTouch<300){e.preventDefault();} lastTouch=now;},{passive:false});
