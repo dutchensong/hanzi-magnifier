@@ -3,6 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <!-- Web fonts for cross-device consistency (iPad Chrome, etc.) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <style>
+    @font-face{font-family:'LXGWWenKai';font-weight:400;font-style:normal;src:url('https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@v1.330/WOFF2/LXGWWenKai-Regular.woff2') format('woff2');font-display:swap}
+    @font-face{font-family:'LXGWWenKai';font-weight:700;font-style:normal;src:url('https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@v1.330/WOFF2/LXGWWenKai-Bold.woff2') format('woff2');font-display:swap}
+  </style>
   <title>超大汉字放大器</title>
   <style>
     :root{
@@ -54,9 +63,8 @@
       <label class="control">字号 <input id="size" type="range" min="100" max="200" step="5" value="150"> <span id="sizeVal" class="muted">150px</span></label>
       <label class="control">字重
         <select id="weight">
-          <option value="600">偏粗</option>
-          <option value="700" selected>粗</option>
-          <option value="800">特粗</option>
+          <option value="400">常规</option>
+          <option value="700" selected>加粗</option>
         </select>
       </label>
       <label class="control"><input type="checkbox" id="outline"> 描边</label>
@@ -141,10 +149,10 @@
 
   function fontStack(k){
     switch(k){
-      case 'kaiti': return '"Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai","AR PL UKai CN","AR PL UKai TW","TW-Kai",serif';
-      case 'song': return '"Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC","PMingLiU","MingLiU",serif';
-      case 'hei': return '"PingFang SC","Microsoft YaHei","Heiti SC","Noto Sans CJK SC","Source Han Sans SC","Hiragino Sans GB","Arial",sans-serif';
-      case 'li': return '"LiSu","STLiti","KaiTi","Kaiti",serif';
+      case 'kaiti': return 'LXGWWenKai, "Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai","AR PL UKai CN","AR PL UKai TW","TW-Kai",serif';
+      case 'song': return '"Noto Serif SC","Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC",serif';
+      case 'hei': return '"Noto Sans SC","PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Hiragino Sans GB","Arial",sans-serif';
+      case 'li': return '"Ma Shan Zheng","LiSu","STLiti","KaiTi","Kaiti",serif';
       default: return '"Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai",serif';
     }
   }
