@@ -3,23 +3,33 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <!-- Web fonts for cross-device consistency (iPad Chrome, etc.) -->
+  <title>超大汉字放大器</title>
+
+  <!-- Local-first WenKai (LXGWWenKai) with CDN fallback -->
+  <link rel="preload" href="./fonts/LXGWWenKai-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face {
+      font-family: 'LXGWWenKai';
+      src: url('./fonts/LXGWWenKai-Regular.woff2') format('woff2'),
+           url('https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@v1.330/WOFF2/LXGWWenKai-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+
+  <!-- Other webfonts (for 宋/黑/隶 作为参考显示) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <style>
-    @font-face{font-family:'LXGWWenKai';font-weight:400;font-style:normal;src:url('https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@v1.330/WOFF2/LXGWWenKai-Regular.woff2') format('woff2');font-display:swap}
-    @font-face{font-family:'LXGWWenKai';font-weight:700;font-style:normal;src:url('https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@v1.330/WOFF2/LXGWWenKai-Bold.woff2') format('woff2');font-display:swap}
-  </style>
-  <title>超大汉字放大器</title>
+
   <style>
     :root{
       --bg:#f7f7fb;--fg:#111;--muted:#666;--accent:#3b82f6;--card:#fff;--grid:#e5e7eb;--tian:#d1d5db;--mi:#d1d5db;
     }
     [data-theme="dark"]{--bg:#0b0c10;--fg:#f5f5f5;--muted:#b7b7b7;--accent:#60a5fa;--card:#121318;--grid:#2a2d34;--tian:#343843;--mi:#343843}
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--fg);font-family: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family: system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;}
     .container{max-width:1100px;margin:0 auto;padding:16px}
     .toolbar{position:sticky;top:0;z-index:10;background:linear-gradient(var(--bg),var(--bg));backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--grid);}
     .toolbar .inner{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 4px}
@@ -33,14 +43,13 @@
     .muted{color:var(--muted)}
     .grid{display:grid;grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));gap:12px}
     .tile{position:relative;aspect-ratio:1/1;border-radius:14px;border:1px solid var(--grid);overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center}
-    .tile .char{line-height:1;user-select:all}
+    .tile .char{line-height:1;user-select:all;font-synthesis-weight:none} /* 禁止伪粗体 */
     .tile .pin{position:absolute;right:10px;top:10px;font-size:12px;color:var(--muted)}
     .tile .idx{position:absolute;left:10px;top:10px;font-size:12px;color:var(--muted)}
     .tile .gridlines{position:absolute;inset:0;pointer-events:none}
     .note{font-size:13px}
     .footer{color:var(--muted);text-align:center;padding:18px}
     .hidden{display:none}
-    .big{font-variation-settings: "wght" 700}
     .outline{-webkit-text-stroke: 2px var(--fg);color:transparent}
     /* 田字格 */
     .tian::before, .tian::after, .tian .mid::before, .tian .mid::after{content:"";position:absolute;background:var(--tian)}
@@ -61,27 +70,21 @@
     <div class="container inner">
       <input id="text" type="text" inputmode="text" placeholder="输入要放大的字或词语（支持多个字）"/>
       <label class="control">字号 <input id="size" type="range" min="100" max="200" step="5" value="150"> <span id="sizeVal" class="muted">150px</span></label>
-      <label class="control">字重
-        <select id="weight">
-          <option value="400">常规</option>
-          <option value="700" selected>加粗</option>
-        </select>
-      </label>
-      <label class="control"><input type="checkbox" id="outline"> 描边</label>
-      <label class="control">格子
-        <select id="gridtype">
-          <option value="none">无</option>
-          <option value="tian">田字格</option>
-          <option value="mi">米字格</option>
-          <option value="square">方格</option>
-        </select>
-      </label>
       <label class="control">字体
         <select id="font">
           <option value="kaiti" selected>楷体</option>
           <option value="song">宋体</option>
           <option value="hei">黑体</option>
           <option value="li">隶书</option>
+        </select>
+      </label>
+      <label class="control"><input type="checkbox" id="outline"> 描边</label>
+      <label class="control">格子
+        <select id="gridtype">
+          <option value="tian" selected>田字格</option>
+          <option value="mi">米字格</option>
+          <option value="square">方格</option>
+          <option value="none">无</option>
         </select>
       </label>
       <label class="control"><input type="checkbox" id="remember" checked> 记住偏好</label>
@@ -118,7 +121,6 @@
   const text = $('#text');
   const size = $('#size');
   const sizeVal = $('#sizeVal');
-  const weight = $('#weight');
   const outline = $('#outline');
   const gridtype = $('#gridtype');
   const grid = $('#grid');
@@ -126,37 +128,37 @@
   const btnTheme = $('#btnTheme');
   const btnCopy = $('#btnCopy');
   const btnClear = $('#btnClear');
+  const solo = $('#solo');
   const fontSel = $('#font');
   const remember = $('#remember');
   const btnReset = $('#btnReset');
-  const solo = $('#solo');
 
   const state = {
     text: localStorage.getItem('bch_text') || '作业 日记 汉字',
     size: +localStorage.getItem('bch_size') || 150,
-    weight: localStorage.getItem('bch_weight') || '700',
     outline: localStorage.getItem('bch_outline') === '1' ? true : false,
     grid: localStorage.getItem('bch_grid') || 'tian',
     theme: localStorage.getItem('bch_theme') || 'light',
     font: localStorage.getItem('bch_font') || 'kaiti',
     remember: (localStorage.getItem('bch_remember') !== '0')
   };
-
+  // 保护旧缓存：若旧字号超范围，回到150
   state.size = (state.size<100 || state.size>200) ? 150 : state.size;
+
   function applyTheme(){
     document.documentElement.setAttribute('data-theme', state.theme==='dark'?'dark':'light');
   }
 
   function fontStack(k){
     switch(k){
-      case 'kaiti': return 'LXGWWenKai, "Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai","AR PL UKai CN","AR PL UKai TW","TW-Kai",serif';
-      case 'song': return '"Noto Serif SC","Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC",serif';
-      case 'hei': return '"Noto Sans SC","PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Hiragino Sans GB","Arial",sans-serif';
-      case 'li': return '"Ma Shan Zheng","LiSu","STLiti","KaiTi","Kaiti",serif';
-      default: return '"Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai",serif';
+      case 'kaiti': return 'LXGWWenKai, "Kaiti SC","STKaiti","KaiTi","Kaiti","DFKai-SB","BiauKai","AR PL UKai CN","AR PL UKai TW","TW-Kai", serif';
+      case 'song': return '"Noto Serif SC","Songti SC","SimSun","Noto Serif CJK SC","Source Han Serif SC", serif';
+      case 'hei':  return '"Noto Sans SC","PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC","Hiragino Sans GB","Arial", sans-serif';
+      case 'li':   return '"Ma Shan Zheng","LiSu","STLiti","KaiTi","Kaiti", serif';
+      default:     return 'LXGWWenKai, "Kaiti SC","KaiTi", serif';
     }
   }
-  const DEFAULTS = { size:150, weight:'700', outline:false, grid:'tian', theme:'light', font:'kaiti' };
+  const DEFAULTS = { size:150, outline:false, grid:'tian', theme:'light', font:'kaiti' };
 
   function render(){
     sizeVal.textContent = state.size + 'px';
@@ -173,9 +175,8 @@
 
       chEl.textContent = ch;
       chEl.style.fontSize = state.size + 'px';
-      chEl.style.fontWeight = state.weight;
-      chEl.classList.toggle('outline', !!state.outline);
       chEl.style.fontFamily = fontStack(state.font);
+      chEl.classList.toggle('outline', !!state.outline);
 
       idx.textContent = i+1;
       pin.textContent = ch.charCodeAt(0).toString(16).toUpperCase();
@@ -205,8 +206,7 @@
     const lines = document.createElement('div');
     lines.className = 'gridlines';
     if(state.grid==='tian'){
-      lines.classList.add('tian');
-      const mid=document.createElement('div');mid.className='mid';lines.appendChild(mid);
+      lines.classList.add('tian'); const mid=document.createElement('div');mid.className='mid';lines.appendChild(mid);
     }else if(state.grid==='mi'){
       lines.classList.add('mi');
     }else if(state.grid==='square'){
@@ -214,10 +214,8 @@
     }
     const c = document.createElement('div');
     c.textContent = ch; c.className='char';
-    // 在全屏模式下自动放到较大
     const base = Math.min(window.innerWidth, window.innerHeight) * 0.75;
     c.style.fontSize = Math.max(base, state.size) + 'px';
-    c.style.fontWeight = state.weight;
     c.style.fontFamily = fontStack(state.font);
     c.classList.toggle('outline', !!state.outline);
 
@@ -232,17 +230,18 @@
     solo.appendChild(wrap);
   }
 
-  // sync UI
+  // 初始化UI
   text.value = state.text; size.value = state.size; sizeVal.textContent = state.size+'px';
-  weight.value = state.weight; outline.checked = state.outline; gridtype.value = state.grid; if(fontSel) fontSel.value = state.font; if(remember) remember.checked = state.remember; applyTheme();
+  outline.checked = state.outline; gridtype.value = state.grid; if(fontSel) fontSel.value = state.font; if(remember) remember.checked = state.remember; applyTheme();
   render();
 
-  // events
-  text.addEventListener('input',()=>{state.text=text.value;if(state.remember) localStorage.setItem('bch_text',state.text); render();});
-  size.addEventListener('input',()=>{state.size=+size.value;if(state.remember) localStorage.setItem('bch_size',state.size); render();});
-  weight.addEventListener('change',()=>{state.weight=weight.value;if(state.remember) localStorage.setItem('bch_weight',state.weight); render();});
-  outline.addEventListener('change',()=>{state.outline=outline.checked;if(state.remember) localStorage.setItem('bch_outline',state.outline?'1':'0'); render();});
-  gridtype.addEventListener('change',()=>{state.grid=gridtype.value;if(state.remember) localStorage.setItem('bch_grid',state.grid); render();});
+  // 事件绑定
+  text.addEventListener('input',()=>{ state.text=text.value; if(state.remember) localStorage.setItem('bch_text',state.text); render(); });
+  size.addEventListener('input',()=>{ state.size=+size.value; if(state.remember) localStorage.setItem('bch_size',state.size); render(); });
+  outline.addEventListener('change',()=>{ state.outline=outline.checked; if(state.remember) localStorage.setItem('bch_outline',state.outline?'1':'0'); render(); });
+  gridtype.addEventListener('change',()=>{ state.grid=gridtype.value; if(state.remember) localStorage.setItem('bch_grid',state.grid); render(); });
+  if(fontSel){ fontSel.addEventListener('change',()=>{ state.font = fontSel.value; if(state.remember) localStorage.setItem('bch_font', state.font); render(); }); }
+  if(remember){ remember.addEventListener('change',()=>{ state.remember = remember.checked; localStorage.setItem('bch_remember', state.remember ? '1':'0'); }); }
 
   btnFS.addEventListener('click',()=>{
     if(document.fullscreenElement){document.exitFullscreen();}
@@ -255,21 +254,18 @@
   btnCopy.addEventListener('click',async()=>{
     try{await navigator.clipboard.writeText(state.text); btnCopy.textContent='已复制'; setTimeout(()=>btnCopy.textContent='复制文字',1000);}catch(e){alert('复制失败：'+e.message)}
   });
-  btnClear.addEventListener('click',()=>{text.value=''; text.dispatchEvent(new Event('input'));});
+  btnClear.addEventListener('click',()=>{ text.value=''; text.dispatchEvent(new Event('input')); });
 
-  // 字体切换
-  if(fontSel){ fontSel.addEventListener('change',()=>{ state.font = fontSel.value; if(state.remember) if(state.remember) localStorage.setItem('bch_font', state.font); render(); }); }
-  // 记住偏好开关
-  if(remember){ remember.addEventListener('change',()=>{ state.remember = remember.checked; localStorage['setItem']('bch_remember', state.remember ? '1':'0'); }); }
-  // 重置为默认
-  if(btnReset){ btnReset.addEventListener('click',()=>{
-      ['bch_text','bch_size','bch_weight','bch_outline','bch_grid','bch_theme','bch_font'].forEach(k=>localStorage.removeItem(k));
-      state.size = DEFAULTS.size; state.weight = DEFAULTS.weight; state.outline = DEFAULTS.outline; state.grid = DEFAULTS.grid; state.theme = DEFAULTS.theme; state.font = DEFAULTS.font;
-      size.value = String(DEFAULTS.size); weight.value = DEFAULTS.weight; outline.checked = DEFAULTS.outline; gridtype.value = DEFAULTS.grid; if(fontSel) fontSel.value = DEFAULTS.font; text.value='';
+  if(btnReset){
+    btnReset.addEventListener('click',()=>{
+      ['bch_text','bch_size','bch_outline','bch_grid','bch_theme','bch_font'].forEach(k=>localStorage.removeItem(k));
+      state.size = DEFAULTS.size; state.outline = DEFAULTS.outline; state.grid = DEFAULTS.grid; state.theme = DEFAULTS.theme; state.font = DEFAULTS.font;
+      size.value = String(DEFAULTS.size); outline.checked = DEFAULTS.outline; gridtype.value = DEFAULTS.grid; if(fontSel) fontSel.value = DEFAULTS.font; text.value='';
       applyTheme(); render();
-  }); }
+    });
+  }
 
-  // iPad优化：禁止双击缩放带来的抖动
+  // iPad优化：防止双击缩放
   let lastTouch=0; window.addEventListener('touchend',e=>{const now=Date.now(); if(now-lastTouch<300){e.preventDefault();} lastTouch=now;},{passive:false});
 })();
 </script>
