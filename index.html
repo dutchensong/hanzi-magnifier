@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>超大汉字放大器</title>
+  <style>
+    :root{
+      --bg:#f7f7fb;--fg:#111;--muted:#666;--accent:#3b82f6;--card:#fff;--grid:#e5e7eb;--tian:#d1d5db;--mi:#d1d5db;
+    }
+    [data-theme="dark"]{--bg:#0b0c10;--fg:#f5f5f5;--muted:#b7b7b7;--accent:#60a5fa;--card:#121318;--grid:#2a2d34;--tian:#343843;--mi:#343843}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;}
+    .container{max-width:1100px;margin:0 auto;padding:16px}
+    .toolbar{position:sticky;top:0;z-index:10;background:linear-gradient(var(--bg),var(--bg));backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--grid);}
+    .toolbar .inner{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:10px 4px}
+    .card{background:var(--card);border:1px solid var(--grid);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+    .control{display:flex;align-items:center;gap:8px;border:1px solid var(--grid);padding:8px 10px;border-radius:12px;background:transparent}
+    input[type="text"]{font-size:18px;padding:10px 12px;border:1px solid var(--grid);border-radius:12px;min-width:220px;background:var(--card);color:var(--fg)}
+    input[type="range"]{accent-color:var(--accent)}
+    button{padding:10px 12px;border-radius:12px;border:1px solid var(--grid);background:var(--card);color:var(--fg);cursor:pointer}
+    button.primary{background:var(--accent);color:#fff;border-color:transparent}
+    button:active{transform:translateY(1px)}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));gap:12px}
+    .tile{position:relative;aspect-ratio:1/1;border-radius:14px;border:1px solid var(--grid);overflow:hidden;background:var(--card);display:flex;align-items:center;justify-content:center}
+    .tile .char{line-height:1;user-select:all}
+    .tile .pin{position:absolute;right:10px;top:10px;font-size:12px;color:var(--muted)}
+    .tile .idx{position:absolute;left:10px;top:10px;font-size:12px;color:var(--muted)}
+    .tile .gridlines{position:absolute;inset:0;pointer-events:none}
+    .note{font-size:13px}
+    .footer{color:var(--muted);text-align:center;padding:18px}
+    .hidden{display:none}
+    .big{font-variation-settings: "wght" 700}
+    .outline{-webkit-text-stroke: 2px var(--fg);color:transparent}
+    /* 田字格 */
+    .tian::before, .tian::after, .tian .mid::before, .tian .mid::after{content:"";position:absolute;background:var(--tian)}
+    .tian::before{width:1px;height:100%;left:50%;top:0;opacity:.6}
+    .tian::after{height:1px;width:100%;top:50%;left:0;opacity:.6}
+    .tian .mid::before{width:1px;height:100%;left:25%;top:0;opacity:.25}
+    .tian .mid::after{width:1px;height:100%;left:75%;top:0;opacity:.25}
+    /* 米字格 */
+    .mi::before, .mi::after{content:"";position:absolute;background:var(--mi);opacity:.5}
+    .mi::before{height:1px;width:141%;left:-20.5%;top:50%;transform:rotate(45deg)}
+    .mi::after{height:1px;width:141%;left:-20.5%;top:50%;transform:rotate(-45deg)}
+    .sq{outline: 1px dashed var(--grid)}
+    .fullscreen{position:fixed;inset:0;padding:20px;background:var(--bg);z-index:999}
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="container inner">
+      <input id="text" type="text" inputmode="text" placeholder="输入要放大的字或词语（支持多个字）"/>
+      <label class="control">字号 <input id="size" type="range" min="100" max="800" step="10" value="360"> <span id="sizeVal" class="muted">360px</span></label>
+      <label class="control">字重
+        <select id="weight">
+          <option value="600">偏粗</option>
+          <option value="700" selected>粗</option>
+          <option value="800">特粗</option>
+        </select>
+      </label>
+      <label class="control"><input type="checkbox" id="outline"> 描边</label>
+      <label class="control">格子
+        <select id="gridtype">
+          <option value="none">无</option>
+          <option value="tian">田字格</option>
+          <option value="mi">米字格</option>
+          <option value="square">方格</option>
+        </select>
+      </label>
+      <button id="btnFS">全屏</button>
+      <button id="btnTheme">深浅</button>
+      <button id="btnCopy">复制文字</button>
+      <button id="btnClear">清空</button>
+      <span class="muted note">小技巧：把本页面“添加到主屏幕”，像App一样打开。</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="grid" class="grid"></div>
+
+    <div class="footer">为低年级孩子写日记查字而做。支持触控放大（双指缩放）、单击某个字可独立全屏显示。</div>
+  </div>
+
+  <template id="tileTpl">
+    <div class="tile card">
+      <span class="idx"></span>
+      <span class="pin"></span>
+      <div class="gridlines"></div>
+      <div class="char" aria-label="char"></div>
+    </div>
+  </template>
+
+  <div id="solo" class="hidden"></div>
+
+<script>
+(function(){
+  const $ = (s,root=document)=>root.querySelector(s);
+  const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
+  const text = $('#text');
+  const size = $('#size');
+  const sizeVal = $('#sizeVal');
+  const weight = $('#weight');
+  const outline = $('#outline');
+  const gridtype = $('#gridtype');
+  const grid = $('#grid');
+  const btnFS = $('#btnFS');
+  const btnTheme = $('#btnTheme');
+  const btnCopy = $('#btnCopy');
+  const btnClear = $('#btnClear');
+  const solo = $('#solo');
+
+  const state = {
+    text: localStorage.getItem('bch_text') || '作业 日记 汉字',
+    size: +localStorage.getItem('bch_size') || 360,
+    weight: localStorage.getItem('bch_weight') || '700',
+    outline: localStorage.getItem('bch_outline') === '1' ? true : false,
+    grid: localStorage.getItem('bch_grid') || 'tian',
+    theme: localStorage.getItem('bch_theme') || 'light'
+  };
+
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', state.theme==='dark'?'dark':'light');
+  }
+
+  function render(){
+    sizeVal.textContent = state.size + 'px';
+    grid.innerHTML = '';
+    const chars = [...(state.text.replace(/\s+/g,'').trim())];
+    if(chars.length===0){ grid.innerHTML = '<div class="muted" style="padding:24px">在上方输入要放大的字～</div>'; return; }
+    chars.forEach((ch, i)=>{
+      const tpl = document.importNode($('#tileTpl').content, true);
+      const tile = tpl.querySelector('.tile');
+      const chEl = tpl.querySelector('.char');
+      const pin = tpl.querySelector('.pin');
+      const idx = tpl.querySelector('.idx');
+      const lines = tpl.querySelector('.gridlines');
+
+      chEl.textContent = ch;
+      chEl.style.fontSize = state.size + 'px';
+      chEl.style.fontWeight = state.weight;
+      chEl.classList.toggle('outline', !!state.outline);
+
+      idx.textContent = i+1;
+      pin.textContent = ch.charCodeAt(0).toString(16).toUpperCase();
+
+      lines.className = 'gridlines';
+      if(state.grid==='tian'){
+        lines.classList.add('tian');
+        const mid = document.createElement('div');
+        mid.className = 'mid';
+        lines.appendChild(mid);
+      }else if(state.grid==='mi'){
+        lines.classList.add('mi');
+      }else if(state.grid==='square'){
+        tile.classList.add('sq');
+      }
+
+      tile.addEventListener('click',()=>openSolo(ch));
+      grid.appendChild(tpl);
+    });
+  }
+
+  function openSolo(ch){
+    solo.className = 'fullscreen';
+    solo.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.width='100%';wrap.style.height='100%';wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.justifyContent='center';wrap.style.position='relative';
+    const lines = document.createElement('div');
+    lines.className = 'gridlines';
+    if(state.grid==='tian'){
+      lines.classList.add('tian');
+      const mid=document.createElement('div');mid.className='mid';lines.appendChild(mid);
+    }else if(state.grid==='mi'){
+      lines.classList.add('mi');
+    }else if(state.grid==='square'){
+      lines.classList.add('sq');
+    }
+    const c = document.createElement('div');
+    c.textContent = ch; c.className='char';
+    // 在全屏模式下自动放到较大
+    const base = Math.min(window.innerWidth, window.innerHeight) * 0.75;
+    c.style.fontSize = Math.max(base, state.size) + 'px';
+    c.style.fontWeight = state.weight;
+    c.classList.toggle('outline', !!state.outline);
+
+    const back = document.createElement('button');
+    back.textContent = '返回';
+    back.style.position='absolute';back.style.left='20px';back.style.top='20px';
+    back.style.padding='12px 14px';back.style.borderRadius='12px';
+    back.style.border='1px solid var(--grid)';back.style.background='var(--card)';
+    back.onclick = ()=>{ solo.className='hidden'; solo.innerHTML=''; };
+
+    wrap.appendChild(lines);wrap.appendChild(c);wrap.appendChild(back);
+    solo.appendChild(wrap);
+  }
+
+  // sync UI
+  text.value = state.text; size.value = state.size; sizeVal.textContent = state.size+'px';
+  weight.value = state.weight; outline.checked = state.outline; gridtype.value = state.grid; applyTheme();
+  render();
+
+  // events
+  text.addEventListener('input',()=>{state.text=text.value;localStorage.setItem('bch_text',state.text); render();});
+  size.addEventListener('input',()=>{state.size=+size.value;localStorage.setItem('bch_size',state.size); render();});
+  weight.addEventListener('change',()=>{state.weight=weight.value;localStorage.setItem('bch_weight',state.weight); render();});
+  outline.addEventListener('change',()=>{state.outline=outline.checked;localStorage.setItem('bch_outline',state.outline?'1':'0'); render();});
+  gridtype.addEventListener('change',()=>{state.grid=gridtype.value;localStorage.setItem('bch_grid',state.grid); render();});
+
+  btnFS.addEventListener('click',()=>{
+    if(document.fullscreenElement){document.exitFullscreen();}
+    else{document.documentElement.requestFullscreen().catch(()=>openSolo((state.text||'字')[0]||'字'));}
+  });
+  btnTheme.addEventListener('click',()=>{
+    state.theme = state.theme==='dark'?'light':'dark';
+    localStorage.setItem('bch_theme',state.theme); applyTheme();
+  });
+  btnCopy.addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText(state.text); btnCopy.textContent='已复制'; setTimeout(()=>btnCopy.textContent='复制文字',1000);}catch(e){alert('复制失败：'+e.message)}
+  });
+  btnClear.addEventListener('click',()=>{text.value=''; text.dispatchEvent(new Event('input'));});
+
+  // iPad优化：禁止双击缩放带来的抖动
+  let lastTouch=0; window.addEventListener('touchend',e=>{const now=Date.now(); if(now-lastTouch<300){e.preventDefault();} lastTouch=now;},{passive:false});
+})();
+</script>
+</body>
+</html>
